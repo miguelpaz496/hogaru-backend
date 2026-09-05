@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(150)
+  avatar    String?
+  color     String   @default("#1a5fa8") @db.VarChar(7)
+  role      Role     @default(member)
+  googleId  String   @unique @db.VarChar(100)
+  createdAt DateTime @default(now())
+
+  createdHouseholds  Household[]      @relation("HouseholdCreator")
+  households         UserHousehold[]
+  expensesPaid       Expense[]        @relation("ExpensePaidBy")
+  expensesCreated    Expense[]        @relation("ExpenseCreatedBy")
+  debtsPaid          DebtPayment[]    @relation("DebtPaidBy")
+  debtsReceived      DebtPayment[]    @relation("DebtPaidTo")
+  tasks              HouseholdTask[]
+  shoppingItems      ShoppingItem[]
+  shoppingLists      ShoppingList[]
+  events             Event[]
+
+  @@map("users")
+}
+
+model Household {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  createdBy Int
+  createdAt DateTime @default(now())
+
+  creator       User            @relation("HouseholdCreator", fields: [createdBy], references: [id])
+  members       UserHousehold[]
+  shoppingLists ShoppingList[]
+  expenses      Expense[]
+  debtPayments  DebtPayment[]
+  tasks         HouseholdTask[]
+  events        Event[]
+
+  @@map("households")
+}
+
+model UserHousehold {
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  householdId Int
+  status      MemberStatus    @default(active)
+  joinedAt    DateTime        @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  household Household @relation(fields: [householdId], references: [id])
+
+  @@unique([userId, householdId])
+  @@map("user_household")
+}
+
+model ShoppingList {
+  id          Int      @id @default(autoincrement())
+  householdId Int
+  name        String   @db.VarChar(100)
+  createdBy   Int
+  createdAt   DateTime @default(now())
+
+  household Household      @relation(fields: [householdId], references: [id])
+  creator   User           @relation(fields: [createdBy], references: [id])
+  items     ShoppingItem[]
+
+  @@map("shopping_lists")
+}
+
+model ShoppingItem {
+  id        Int              @id @default(autoincrement())
+  listId    Int
+  name      String           @db.VarChar(150)
+  category  ShoppingCategory @default(Otros)
+  needed    Boolean          @default(true)
+  addedBy   Int
+  createdAt DateTime         @default(now())
+
+  list    ShoppingList @relation(fields: [listId], references: [id])
+  addedByUser User     @relation(fields: [addedBy], references: [id])
+
+  @@map("shopping_items")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  householdId Int
+  paidBy      Int
+  createdBy   Int
+  amount      Decimal  @db.Decimal(10, 2)
+  split       Decimal  @default(0.500) @db.Decimal(4, 3)
+  category    String?  @db.VarChar(100)
+  description String?
+  isRecurring Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id])
+  paidByUser  User      @relation("ExpensePaidBy", fields: [paidBy], references: [id])
+  createdByUser User    @relation("ExpenseCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("expenses")
+}
+
+model DebtPayment {
+  id          Int      @id @default(autoincrement())
+  householdId Int
+  paidBy      Int
+  paidTo      Int
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+
+  household    Household @relation(fields: [householdId], references: [id])
+  paidByUser   User      @relation("DebtPaidBy", fields: [paidBy], references: [id])
+  paidToUser   User      @relation("DebtPaidTo", fields: [paidTo], references: [id])
+
+  @@map("debt_payments")
+}
+
+model HouseholdTask {
+  id          Int      @id @default(autoincrement())
+  householdId Int
+  title       String   @db.VarChar(200)
+  doneBy      Int
+  createdAt   DateTime @default(now())
+
+  household  Household @relation(fields: [householdId], references: [id])
+  doneByUser User      @relation(fields: [doneBy], references: [id])
+
+  @@map("household_tasks")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  householdId Int
+  title       String    @db.VarChar(200)
+  type        EventType
+  referenceId Int?
+  eventDate   DateTime  @db.Date
+  color       String?   @db.VarChar(7)
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id])
+  createdByUser User    @relation(fields: [createdBy], references: [id])
+
+  @@map("events")
+}
+
+enum Role {
+  admin
+  member
+}
+
+enum MemberStatus {
+  pending
+  active
+}
+
+enum EventType {
+  event
+  expense
+  task
+}
+
+enum ShoppingCategory {
+  Lácteos
+  Carnes_y_pescados
+  Frutas_y_verduras
+  Panadería_y_cereales
+  Aseo_personal
+  Limpieza_del_hogar
+  Congelados
+  Enlatados_y_conservas
+  Granos_y_pasta
+  Farmacia
+  Mascotas
+  Otros
+}
