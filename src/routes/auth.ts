@@ -17,15 +17,14 @@ router.get('/google/callback',
   (req: Request, res: Response) => {
     const user = req.user as any;
 
-    // Genera el JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
-    // Redirige al frontend con el token
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+    // Temporal para pruebas — luego vuelve a la redirección
+    res.json({ token, user });
   }
 );
 
