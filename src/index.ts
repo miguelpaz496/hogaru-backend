@@ -14,6 +14,7 @@ app.use(passport.initialize());
 
 // Routes
 app.use('/auth', require('./routes/auth').default);
+app.use('/households', require('./routes/households').default);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', app: 'hogaru-backend' });
